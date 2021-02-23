@@ -3,6 +3,7 @@ import 'source-map-support/register';
 import * as cdk from '@aws-cdk/core';
 import * as sns from '@aws-cdk/aws-sns';
 import * as path from 'path';
+import * as triggers from '../lib';
 import { NodejsFunction } from '@aws-cdk/aws-lambda-nodejs';
 
 export class CdkTriggersStack extends cdk.Stack {
@@ -19,6 +20,12 @@ export class CdkTriggersStack extends cdk.Stack {
     });
 
     topic.grantPublish(publisher);
+
+    // call "publisher" after topic is created
+    new triggers.AfterCreate(this, 'PublishToTopic', {
+      resources: [topic],
+      handler: publisher
+    });
   }
 }
 

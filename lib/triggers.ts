@@ -4,9 +4,11 @@ import { join } from "path";
 
 export interface AfterCreateProps {
   /**
-   * Resources to trigger on.
+   * Resources to trigger on. Resources can come from any stack in the app.
+   *
+   * @default [] Run the trigger at any time during stack deployment.
    */
-  readonly resources: Construct[];
+  readonly resources?: Construct[];
 
   /**
    * The handler to execute once after all the resources are created.
@@ -23,21 +25,23 @@ export class AfterCreate extends Construct {
       codeDirectory: join(__dirname, 'handler'),
       policyStatements: [
         {
+          Effect: 'Allow',
           Action: ['lambda:InvokeFunction'],
-          
+          Resource: ['*'], // TODO?
         }
       ]
     });
 
-    new CustomResource(this, 'Resource', {
+    const resource = new CustomResource(this, 'Resource', {
       resourceType: 'Custom::Trigger',
       serviceToken: provider.serviceToken,
       properties: {
-        HANDLER_ARN: props.handler.functionArn
+        HandlerArn: props.handler.functionArn
       }
     });
 
-    props.handler.grantInvoke();
-
+    // add a dependency between our resource and the resources we want to invoke
+    // after.
+    resource.node.addDependency(...props.resources ?? []);
   }
 }
